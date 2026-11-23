@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>上海往返{city} · 航班详情</title>
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body class="subpage flight-page">
+<nav class="site-nav wrap" aria-label="看板导航">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✈</span>上海假期机票</a>
+  <div class="site-links"><a href="/compare">选去哪</a><a href="/watch">关注航班</a></div>
+</nav>
+<header class="subpage-head wrap">
+  <h1>上海往返{city}</h1>
+  <p class="period">{date_range} · 直飞 · 1 位成人经济舱</p>
+</header>
+<main class="wrap">
+  <p>{quote_status}</p>
+  <p class="status" role="status">{message}</p>
+  <div class="actions">
+    {form}
+    <a href="{fliggy}" target="_blank" rel="noopener noreferrer">飞猪查航班</a>
+  </div>
+  {archive}
+  <p class="fine"{hidden}>组合报价来自 Google Flights。航班时间以当地时间显示。</p>
+  <div class="filters"{hidden}>
+    <label>排序<select id="sort"><option value="price">总价最低</option><option value="arrive">去程最早抵达</option><option value="back">返程最早抵沪</option></select></label>
+    <label>上海出发机场<select id="airport"><option value="">全部机场</option>{airports}</select></label>
+    <label>去程抵达日期<select id="overnight"><option value="">不限</option><option value="0">出发当天抵达</option></select></label>
+    <label class="check"><input type="checkbox" id="avoid-red-eye" aria-describedby="red-eye-rule">避开红眼航班</label>
+  </div>
+  <p id="red-eye-rule" class="fine"{hidden}>{red_eye_rule}</p>
+  <p id="no-match" hidden>没有符合当前筛选条件的方案。</p>
+  <div id="options">{cards}</div>
+</main>
+<script>
+  const form = document.getElementById('refresh');
+  form?.addEventListener('submit', () => {{
+    const button = form.querySelector('button');
+    button.textContent = '正在核对去程与返程…';
+    button.disabled = true;
+  }});
+  const options = document.getElementById('options');
+  const sort = document.getElementById('sort');
+  const airport = document.getElementById('airport');
+  const overnight = document.getElementById('overnight');
+  const avoidRedEye = document.getElementById('avoid-red-eye');
+  const cards = [...options.children];
+  function filterAndSort() {{
+    cards.sort((a, b) => sort.value === 'price'
+      ? Number(a.dataset.price) - Number(b.dataset.price)
+      : a.dataset[sort.value].localeCompare(b.dataset[sort.value]));
+    let shown = 0;
+    for (const card of cards) {{
+      card.hidden = (airport.value && airport.value !== card.dataset.origin)
+        || (overnight.value && overnight.value !== card.dataset.overnight)
+        || (avoidRedEye.checked && card.dataset.redEye === '1');
+      shown += card.hidden ? 0 : 1;
+      options.append(card);
+    }}
+    document.getElementById('no-match').hidden = shown > 0;
+  }}
+  for (const control of [sort, airport, overnight, avoidRedEye]) control.addEventListener('change', filterAndSort);
+  if (cards.length && new URLSearchParams(location.search).get('avoid_red_eye') === '1') {{
+    avoidRedEye.checked = true;
+    filterAndSort();
+  }}
+</script>
+</body>
+</html>

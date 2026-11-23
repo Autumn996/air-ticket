@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>选去哪 · 上海假期机票</title>
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body class="compare-page">
+<nav class="site-nav wrap" aria-label="看板导航">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✈</span>上海假期机票</a>
+  <div class="site-links">
+    <a href="/compare" aria-current="page">选去哪</a>
+    <a href="/">机票看板</a>
+    <a href="{watch_url}">关注航班</a>
+  </div>
+</nav>
+<header class="travel-hero wrap">
+  <img src="assets/shanghai-blue-hour.png" alt="" fetchpriority="high">
+  <div class="hero-copy">
+    <p class="hero-kicker">上海出发 · 国内直飞</p>
+    <h1>选去哪</h1>
+    <p>{holiday_name} · {dates}</p>
+  </div>
+</header>
+<main class="wrap">
+  <nav class="trips" aria-label="切换行程日期">{navigation}</nav>
+  <div class="compare-layout">
+  <aside class="filter-sidebar" aria-label="筛选及费用">
+  <section class="box" aria-labelledby="filter-title">
+    <div class="filter-heading">
+      <div><h2 id="filter-title">出行筛选</h2><small id="filter-state" hidden></small></div>
+      <div class="filter-actions">
+        <button id="reset-filters" type="button">清空</button>
+        <button id="filter-toggle" type="button" aria-controls="filters" aria-expanded="false" hidden>展开</button>
+      </div>
+    </div>
+    <form id="filters">
+      <div class="control-grid">
+        <label>单人机票预算（元）<input type="number" min="0" max="100000" name="budget" placeholder="不限"></label>
+        <label>上海出发机场<select name="airport"><option value="">不限</option><option value="SHA">虹桥</option><option value="PVG">浦东</option></select></label>
+        <label>排序<select name="sort"><option value="price">机票价最低</option><option value="stay">落地停留最长</option><option value="total">整趟估算最低</option></select></label>
+      </div>
+      <div class="switches">
+        <label class="check"><input type="checkbox" name="sameDay">去程当天抵达</label>
+        <label class="check"><input type="checkbox" name="avoidRedEye" aria-describedby="red-eye-rule">避开红眼航班</label>
+      </div>
+      <p id="red-eye-rule" class="muted">{red_eye_rule}</p>
+      <details id="advanced">
+        <summary>更多时间条件</summary>
+        <div class="control-grid">
+          <label>去程最早起飞<input type="time" name="earliest"></label>
+          <label>返程最晚抵沪<input type="time" name="latest"></label>
+          <label>落地至返航至少（小时）<input type="number" min="0" max="720" name="stay"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="stale">包含之前采集的组合报价</label>
+      </details>
+    </form>
+  </section>
+  <details class="box" id="costs">
+    <summary>估算整趟费用</summary>
+    <p class="muted">已按人数核价的航班使用全员报价，其他方案按单人报价乘人数估算。住宿和交通填全员全程金额，已确定无该项费用可填 0。</p>
+    <form id="cost-form">
+      <div class="control-grid">
+        <label>成人数<input id="adults" type="number" required min="1" max="9" value="1"></label>
+        <label>目的地<select id="expense-city"></select></label>
+        <label>全程住宿（元）<input id="lodging" type="number" min="0" max="1000000" step=".01" placeholder="待填"></label>
+        <label>地面交通（元）<input id="transport" type="number" min="0" max="1000000" step=".01" placeholder="待填"></label>
+        <label>其他费用（元）<input id="other" type="number" min="0" max="1000000" step=".01" placeholder="可选"></label>
+      </div>
+      <button type="submit">保存费用</button>
+      <span id="cost-status" class="muted" role="status"></span>
+    </form>
+  </details>
+  </aside>
+  <section aria-labelledby="results-title">
+    <div class="results-heading">
+      <h2 id="results-title">城市往返方案</h2>
+      <form id="batch" method="post" action="/compare">
+        <input type="hidden" name="outbound" value="{outbound}">
+        <input type="hidden" name="returning" value="{returning}">
+        <input type="hidden" name="token" value="{token}">
+        <button class="primary" type="submit"{disabled}>{batch_button}</button>
+      </form>
+    </div>
+    <div class="metrics" aria-hidden="true">
+      <div class="metric"><strong id="metric-cities">–</strong><span>城市有参考价</span></div>
+      <div class="metric"><strong id="metric-saved">–</strong><span>城市已存明细</span></div>
+      <div class="metric"><strong id="metric-today">–</strong><span>今日已核对</span></div>
+      <div class="metric match"><strong id="metric-matching">–</strong><span>城市符合筛选</span></div>
+    </div>
+    <p id="coverage" class="sr-only" role="status"></p>
+    <p id="incomplete-totals" class="muted" hidden>费用待填的城市列在后面。</p>
+    <p class="status" role="status">{message}</p>
+    <p id="empty" hidden>已采集的航班里暂无符合条件的组合。可以放宽条件，或补查更多城市。</p>
+    <div class="cards" id="cards"></div>
+    <details class="box pending" id="pending" hidden>
+      <summary id="pending-label"></summary>
+      <ul id="pending-rows"></ul>
+    </details>
+  </section>
+  </div>
+</main>
+<template id="city-card">
+  <article class="city-card">
+    <div class="city-header">
+      <div><h3 data-value="city"></h3><span data-value="code" class="airport-code"></span></div>
+      <div class="city-price"><strong data-value="price" class="price"></strong><small>单人往返</small></div>
+    </div>
+    <div class="card-badges" data-value="badges"></div>
+    <dl class="legs">
+      <div class="leg"><dt>去程</dt><dd data-value="out"></dd></div>
+      <div class="leg"><dt>返程</dt><dd data-value="back"></dd></div>
+    </dl>
+    <div class="card-meta">
+      <p class="muted" data-value="stay"></p>
+      <p class="estimate" data-value="total"></p>
+      <p class="source" data-value="source"></p>
+    </div>
+    <div class="actions"><a data-value="detail" class="button">航班详情</a><a data-value="party">人数核价</a><a data-value="watch">关注</a><a data-value="booking" target="_blank" rel="noopener noreferrer">飞猪</a></div>
+  </article>
+</template>
+<template id="route-line">
+  <div class="route-line">
+    <div class="route-point"><strong class="route-time" data-leg="dep-time"></strong><small class="route-airport" data-leg="dep-airport"></small></div>
+    <span class="route-track"><span class="route-plane" aria-hidden="true">✈</span><span class="route-number" data-leg="number"></span></span>
+    <div class="route-point">
+      <div class="route-clock"><small class="next-day" data-leg="next-day" hidden>次日</small><strong class="route-time" data-leg="arr-time"></strong></div>
+      <small class="route-airport" data-leg="arr-airport"></small>
+    </div>
+  </div>
+</template>
+<script type="application/json" id="comparison-data">{payload}</script>
+<script>{script}</script>
+</body>
+</html>

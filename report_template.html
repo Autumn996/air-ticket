@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>上海假期机票</title>
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body class="dashboard" id="top">
+<nav class="site-nav wrap" aria-label="看板导航">
+  <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true">✈</span>上海假期机票</a>
+  <div class="site-links">{local_links}<a href="#history">历史记录</a></div>
+</nav>
+<header class="travel-hero wrap">
+  <img src="assets/shanghai-blue-hour.png" alt="" fetchpriority="high">
+  <div class="hero-copy">
+    <p class="hero-kicker">上海浦东 / 虹桥 · 国内直飞</p>
+    <h1>上海假期机票</h1>
+    <p>单人经济舱往返</p>
+    <p class="status">{status}</p>
+  </div>
+</header>
+<main class="wrap">
+  <nav class="page-tabs" aria-label="跳转节假日">{navigation}</nav>
+  {sections}
+  <section id="history" aria-labelledby="history-title">
+    <h2 id="history-title">历史记录</h2>
+    <p>选择往返日期和目的地，查看每个采集日记录的票价。</p>
+    <p id="history-empty" hidden>暂无已采集的报价。</p>
+    <div id="history-filters" class="history-filters" hidden>
+      <label>往返日期<select id="history-trip"></select></label>
+      <label>目的地<select id="history-city"></select></label>
+    </div>
+    <p id="history-summary" aria-live="polite"></p>
+    <p><a id="history-flights" target="_blank" rel="noopener" hidden>查看这条路线的航班组合记录</a></p>
+    <div id="history-table" class="table" hidden>
+      <table>
+        <thead><tr><th>采集日期</th><th>往返参考价</th><th>机场与航空公司</th></tr></thead>
+        <tbody id="history-rows"></tbody>
+      </table>
+    </div>
+    <noscript><p>开启浏览器的 JavaScript 后即可筛选历史报价。</p></noscript>
+  </section>
+  <footer>
+    <p>看板日期 {generated} · 北京时间</p>
+    <p>按出发和返程的日期组合比较。历史最低为本看板采集过的最低价格。
+      降价提示使用同一目的地和日期组合最近七次历史报价的中位价，至少需要三次历史记录。</p>
+    <p>目的地参考价来自 Google 旅行探索。去程与返程列显示已配对的航班组合报价。{detail_note}可在飞猪复核在售价格和行李条件。
+      <a href="https://www.gov.cn/zhengce/content/202611/content_7085101.htm" target="_blank" rel="noopener">2027 年放假通知</a></p>
+  </footer>
+</main>
+<script type="application/json" id="history-data">{history_data}</script>
+<script>
+  (() => {{
+    const get = (id) => document.getElementById(id);
+    const history = JSON.parse(get('history-data').textContent);
+    if (!history.length) {{
+      get('history-empty').hidden = false;
+      return;
+    }}
+
+    const tripSelect = get('history-trip');
+    const citySelect = get('history-city');
+    const body = get('history-rows');
+    const currency = new Intl.NumberFormat('zh-CN', {{
+      style: 'currency', currency: 'CNY', minimumFractionDigits: 0, maximumFractionDigits: 2,
+    }});
+    const cities = () => history[Number(tripSelect.value)].cities;
+    const setOptions = (select, values) => {{
+      select.replaceChildren(...values.map((label, index) => new Option(label, index)));
+    }};
+
+    function showQuotes() {{
+      const city = cities()[Number(citySelect.value)];
+      const quotes = city.quotes;
+      const lowest = quotes.reduce((price, quote) => Math.min(price, quote[1]), Infinity);
+      get('history-summary').textContent = `累计 ${{quotes.length}} 天有报价 · 最低 ${{currency.format(lowest / 100)}}`;
+      const flights = get('history-flights');
+      flights.hidden = !city.flight_details;
+      if (city.flight_details) flights.href = city.flight_details;
+      else flights.removeAttribute('href');
+      const rows = quotes.map(([day, cents, airport, airline]) => {{
+        const row = document.createElement('tr');
+        row.insertCell().textContent = day;
+        const price = row.insertCell();
+        price.className = 'price';
+        price.textContent = currency.format(cents / 100);
+        row.insertCell().textContent = [airport, airline].filter(Boolean).join(' · ');
+        return row;
+      }});
+      body.replaceChildren(...rows);
+    }}
+
+    function showCities() {{
+      setOptions(citySelect, cities().map((city) => city.name));
+      showQuotes();
+    }}
+
+    setOptions(tripSelect, history.map((trip) => trip.label));
+    tripSelect.addEventListener('change', showCities);
+    citySelect.addEventListener('change', showQuotes);
+    showCities();
+    get('history-filters').hidden = false;
+    get('history-table').hidden = false;
+  }})();
+</script>
+</body>
+</html>

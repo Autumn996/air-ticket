@@ -1,0 +1,74 @@
+name: Update airfare dashboard
+
+on:
+  schedule:
+    - cron: '7 1 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: airfare-pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Restore fare history
+        run: |
+          mkdir -p data
+          cp state/fares.sqlite3 data/fares.sqlite3
+
+      - name: Verify SerpApi credentials
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+        run: python -X utf8 monitor.py check-key
+
+      - name: Collect fares and render the dashboard
+        id: collect
+        continue-on-error: true
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+        run: python -X utf8 monitor.py collect --public-output _site/index.html
+
+      - name: Preserve fare history and prepare Pages files
+        run: |
+          test -s _site/index.html
+          cp data/fares.sqlite3 state/fares.sqlite3
+          git add state/fares.sqlite3
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+                -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+                commit -m 'Update airfare history'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+          cp -r assets _site/assets
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy the dashboard to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Report unsuccessful collection
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo 'The latest collection reported an error. The dashboard includes the most recently available fares.'
+          exit 1

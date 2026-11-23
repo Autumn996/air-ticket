@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>按人数核价 · 上海往返{city}</title>
+<link rel="stylesheet" href="assets/theme.css">
+</head>
+<body class="subpage party-page">
+<nav class="site-nav wrap" aria-label="看板导航">
+  <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✈</span>上海假期机票</a>
+  <div class="site-links"><a href="{comparison}">按 {adults} 人返回选去哪</a><a href="{details_url}">航班详情</a></div>
+</nav>
+<header class="subpage-head wrap">
+  <h1>按人数核价</h1>
+  <p>{dates} · 经济舱</p>
+</header>
+<main class="wrap">
+  <section>
+    <h2>上海往返{city}</h2>
+    {trip}
+    <form method="post" action="/group-quote">
+      {fields}
+      <label>成人数<input name="adults" type="number" min="1" max="9" step="1" value="{adults}" required></label>
+      <button type="submit">查询全员往返报价</button>
+    </form>
+    <p class="status" role="status">{message}</p>
+    {summary}
+    <p class="muted">按看板单人价乘 {adults} 人的原估算为 {estimate}。全员报价使用所选去程、返程和人数重新查询。</p>
+    <a href="{fliggy}" target="_blank" rel="noopener noreferrer">飞猪核对在售价格</a>
+  </section>
+</main>
+<script>
+  const form = document.querySelector('form');
+  form.addEventListener('submit', () => {{
+    const button = form.querySelector('button');
+    button.disabled = true;
+    button.textContent = '正在按所选人数核价…';
+    form.setAttribute('aria-busy', 'true');
+  }});
+</script>
+</body>
+</html>
